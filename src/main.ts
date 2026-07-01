@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 import {
 	KeyStatsSettings,
 	DEFAULT_SETTINGS,
@@ -8,6 +8,8 @@ import {
 import { EditorView } from '@codemirror/view';
 import { EditEvent } from './types';
 import { getBursts, burstWPM, weightedSessionWPM } from './stats';
+
+import { KeyStatsView, VIEW_TYPE_KEY_STATS } from './view';
 
 // TODO: Add a mechanism that clears the events array occassionally, because that thing is just growing and growing
 
@@ -23,6 +25,15 @@ export default class KeyStats extends Plugin {
 		// Set up commands here if needed
 
 		this.addSettingTab(new KeyStatsSettingTab(this.app, this));
+
+		this.registerView(
+			VIEW_TYPE_KEY_STATS,
+			(leaf) => new KeyStatsView(leaf),
+		);
+
+		this.addRibbonIcon('keyboard', 'Typing stats', async () => {
+			await this.activateView();
+		});
 
 		this.statusBarItemEl = this.addStatusBarItem().createEl('span', {
 			text: 'Stats: Ready',
@@ -78,6 +89,25 @@ export default class KeyStats extends Plugin {
 				);
 			}),
 		);
+	}
+
+	async activateView() {
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_KEY_STATS);
+
+		if (leaves.length > 0) {
+			leaf = leaves[0]!;
+		} else {
+			leaf = workspace.getRightLeaf(false);
+			await leaf!.setViewState({
+				type: VIEW_TYPE_KEY_STATS,
+				active: true,
+			});
+
+			await workspace.revealLeaf(leaf!);
+		}
 	}
 
 	onunload() {}
