@@ -26,10 +26,7 @@ export default class KeyStats extends Plugin {
 
 		this.addSettingTab(new TypingStatsSettingTab(this.app, this));
 
-		this.registerView(
-			VIEW_TYPE_KEY_STATS,
-			(leaf) => new TypingStatsView(leaf),
-		);
+		this.registerView(VIEW_TYPE_KEY_STATS, (leaf) => new TypingStatsView(leaf));
 
 		this.addRibbonIcon('keyboard', 'Typing stats', async () => {
 			await this.activateView();
@@ -58,28 +55,23 @@ export default class KeyStats extends Plugin {
 						head: tr.newSelection.main.head,
 					};
 
-					tr.changes.iterChanges(
-						(fromA, toA, fromB, toB, inserted) => {
-							const deletedText = tr.startState.doc.sliceString(
-								fromA,
-								toA,
-							);
-							const insertedText = inserted.toString();
+					tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+						const deletedText = tr.startState.doc.sliceString(fromA, toA);
+						const insertedText = inserted.toString();
 
-							this.events.push({
-								timestamp: now,
-								fileKey,
-								deletedFrom: fromA,
-								deletedTo: toA,
-								deletedText,
-								insertedFrom: fromB,
-								insertedTo: toB,
-								insertedText,
-								selectionBefore,
-								selectionAfter,
-							});
-						},
-					);
+						this.events.push({
+							timestamp: now,
+							fileKey,
+							deletedFrom: fromA,
+							deletedTo: toA,
+							deletedText,
+							insertedFrom: fromB,
+							insertedTo: toB,
+							insertedText,
+							selectionBefore,
+							selectionAfter,
+						});
+					});
 				}
 				if (this.statusUpdateTimer !== null)
 					window.clearTimeout(this.statusUpdateTimer);

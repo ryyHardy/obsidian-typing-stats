@@ -16,8 +16,7 @@ export function getBursts(
 	for (const edit of edits) {
 		if (
 			current.length > 0 &&
-			edit.timestamp - current[current.length - 1]!.timestamp >
-				gapThreshold
+			edit.timestamp - current[current.length - 1]!.timestamp > gapThreshold
 		) {
 			bursts.push(current);
 			current = [];
@@ -60,8 +59,7 @@ export function weightedSessionWPM(bursts: EditEvent[][]): number {
 	let totalDuration = 0;
 
 	for (const burst of bursts) {
-		const duration =
-			burst[burst.length - 1]!.timestamp - burst[0]!.timestamp;
+		const duration = burst[burst.length - 1]!.timestamp - burst[0]!.timestamp;
 		if (duration < 500) continue; // skip single-event or near-instant bursts
 		const wpm = burstWPM(burst);
 		totalWeightedWPM += wpm * duration;
