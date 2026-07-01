@@ -13,7 +13,7 @@ import { TypingStatsView, VIEW_TYPE_KEY_STATS } from './view';
 
 // TODO: Add a mechanism that clears the events array occassionally, because that thing is just growing and growing
 
-export default class KeyStats extends Plugin {
+export default class TypingStats extends Plugin {
 	settings!: TypingStatsSettings;
 	statusBarItemEl!: HTMLElement;
 	events: EditEvent[] = [];
