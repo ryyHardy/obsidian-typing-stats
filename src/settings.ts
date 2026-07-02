@@ -3,10 +3,13 @@ import TypingStats from './main';
 
 export interface TypingStatsSettings {
 	enabled: boolean;
+	// Minimum time gap in MS between changes to consider the next change part of a new burst
+	newBurstThreshold: number;
 }
 
 export const DEFAULT_SETTINGS: TypingStatsSettings = {
 	enabled: true,
+	newBurstThreshold: 2000,
 };
 
 export class TypingStatsSettingTab extends PluginSettingTab {

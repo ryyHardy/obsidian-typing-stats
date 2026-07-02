@@ -6,36 +6,42 @@ import {
 } from './settings';
 
 import { EditorView } from '@codemirror/view';
-import { EditEvent } from './types';
-import { getBursts, burstWPM, weightedSessionWPM } from './stats';
+import { DailyStats, EditEvent, TypingStatsData } from './types';
+import { emptyDailyStats, addBurstToDailyStats } from './stats';
 
 import { TypingStatsView, VIEW_TYPE_KEY_STATS } from './view';
 
-// TODO: Add a mechanism that clears the events array occassionally, because that thing is just growing and growing
+const SAVE_DEBOUNCE_MS = 2000;
+
+function dayKeyFor(ts: number): string {
+	const d = new Date(ts);
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default class TypingStats extends Plugin {
 	settings!: TypingStatsSettings;
-	statusBarItemEl!: HTMLElement;
-	events: EditEvent[] = [];
-	statusUpdateTimer: number | null = null;
+	history: Record<string, DailyStats> = {};
+
+	// A "burst" is a sequence of changes happening very close to each other
+	currentBurst: EditEvent[] = [];
+	todayStats!: DailyStats;
+
+	private saveTimer: number | null = null;
 
 	async onload() {
-		await this.loadSettings();
+		// Settings
+		await this.loadPluginData();
+		this.addSettingTab(new TypingStatsSettingTab(this.app, this));
 
 		// Set up commands here if needed
 
-		this.addSettingTab(new TypingStatsSettingTab(this.app, this));
-
+		// Typing stats view
 		this.registerView(VIEW_TYPE_KEY_STATS, (leaf) => new TypingStatsView(leaf));
-
 		this.addRibbonIcon('keyboard', 'Typing stats', async () => {
 			await this.activateView();
 		});
 
-		this.statusBarItemEl = this.addStatusBarItem().createEl('span', {
-			text: 'Stats: Ready',
-		});
-
+		// Listen for document changes to update stats
 		this.registerEditorExtension(
 			EditorView.updateListener.of((update) => {
 				if (!update.docChanged) return;
@@ -58,8 +64,17 @@ export default class TypingStats extends Plugin {
 					tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
 						const deletedText = tr.startState.doc.sliceString(fromA, toA);
 						const insertedText = inserted.toString();
+						const lastTs =
+							this.currentBurst[this.currentBurst.length - 1]?.timestamp;
 
-						this.events.push({
+						if (
+							lastTs !== undefined &&
+							now - lastTs > this.settings.newBurstThreshold
+						) {
+							this.closeBurst();
+						}
+						// Continue current burst
+						this.currentBurst.push({
 							timestamp: now,
 							fileKey,
 							deletedFrom: fromA,
@@ -73,12 +88,6 @@ export default class TypingStats extends Plugin {
 						});
 					});
 				}
-				if (this.statusUpdateTimer !== null)
-					window.clearTimeout(this.statusUpdateTimer);
-				this.statusUpdateTimer = window.setTimeout(
-					() => this.updateStatusBar(),
-					500,
-				);
 			}),
 		);
 	}
@@ -102,30 +111,9 @@ export default class TypingStats extends Plugin {
 		}
 	}
 
-	onunload() {}
-
-	updateStatusBar() {
-		const now = Date.now();
-		const GAP_THRESHOLD = 2000;
-
-		const bursts = getBursts(this.events, GAP_THRESHOLD);
-		if (bursts.length === 0) return;
-
-		const lastBurst = bursts[bursts.length - 1]!;
-		const lastEventAge = now - lastBurst[lastBurst.length - 1]!.timestamp;
-		const isActive = lastEventAge < GAP_THRESHOLD;
-
-		// If the last burst is still active, it's the "live" burst
-		// If not, the user is paused - show the last completed burst's speed
-		const currentWPM = burstWPM(lastBurst);
-
-		// Session WPM: duration-weighted average across all bursts
-		const sessionWPM = weightedSessionWPM(bursts);
-
-		const indicator = isActive ? '⌨' : '·';
-		this.statusBarItemEl.setText(
-			`${indicator} ${Math.round(currentWPM)} WPM  |  session: ${Math.round(sessionWPM)} WPM`,
-		);
+	onunload() {
+		this.closeBurst();
+		void this.flushSave();
 	}
 
 	async loadSettings() {
@@ -136,7 +124,54 @@ export default class TypingStats extends Plugin {
 		);
 	}
 
+	private closeBurst() {
+		if (this.currentBurst.length === 0) return;
+		const dayKey = dayKeyFor(
+			this.currentBurst[this.currentBurst.length - 1]!.timestamp,
+		);
+		if (dayKey !== this.todayStats.date) {
+			// Day boundary crossed during burst
+			void this.flushSave();
+			this.todayStats = this.history[dayKey] ??= emptyDailyStats(dayKey);
+		}
+
+		addBurstToDailyStats(this.todayStats, this.currentBurst);
+		this.currentBurst = [];
+		this.queueSave();
+	}
+
+	private async loadPluginData() {
+		const data = (await this.loadData()) as Partial<TypingStatsData> | null;
+
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data?.settings);
+		this.history = data?.history ?? {};
+
+		const today = dayKeyFor(Date.now());
+		this.todayStats = this.history[today] ?? emptyDailyStats(today);
+		this.history[today] = this.todayStats;
+	}
+
+	private queueSave() {
+		if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
+		this.saveTimer = window.setTimeout(
+			() => void this.flushSave(),
+			SAVE_DEBOUNCE_MS,
+		);
+	}
+
+	private async flushSave() {
+		if (this.saveTimer !== null) {
+			window.clearTimeout(this.saveTimer);
+			this.saveTimer = null;
+		}
+		const data: TypingStatsData = {
+			settings: this.settings,
+			history: this.history,
+		};
+		await this.saveData(data);
+	}
+
 	async saveSettings() {
-		await this.saveData(this.settings);
+		await this.flushSave();
 	}
 }

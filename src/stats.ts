@@ -72,3 +72,51 @@ export function weightedSessionWPM(bursts: EditEvent[][]): number {
 export function isBackwardJump(prev: EditEvent, curr: EditEvent): boolean {
 	return curr.deletedFrom < prev.insertedTo;
 }
+
+export function emptyDailyStats(date: string): DailyStats {
+	return {
+		date,
+		totalActiveMs: 0,
+		totalNetChars: 0,
+		totalGrossChars: 0,
+		totalDeletedChars: 0,
+		burstCount: 0,
+		avgWPM: 0,
+		errorEvents: 0,
+	};
+}
+
+export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
+	if (burst.length === 0) return;
+
+	const duration = burst[burst.length - 1]!.timestamp - burst[0]!.timestamp;
+
+	const wpm = burstWPM(burst);
+
+	let netChars = 0;
+	let grossChars = 0;
+	let deletedChars = 0;
+	let errorEvents = 0;
+
+	for (let i = 0; i < burst.length; i++) {
+		const e = burst[i]!;
+		netChars += e.insertedText.length - e.deletedText.length;
+		grossChars += e.insertedText.length + e.deletedText.length;
+		deletedChars += e.deletedText.length;
+		if (i > 0 && isBackwardJump(burst[i - 1]!, e)) errorEvents++;
+	}
+
+	// Weighted-average WPM (running average)
+	stats.avgWPM =
+		stats.totalActiveMs + duration === 0
+			? 0
+			: (stats.avgWPM * stats.totalActiveMs + wpm * duration) /
+				(stats.totalActiveMs + duration);
+
+	stats.totalActiveMs += duration;
+	stats.totalNetChars += netChars;
+	stats.totalGrossChars += grossChars;
+	stats.totalDeletedChars += deletedChars;
+	stats.burstCount += 1;
+	stats.errorEvents += errorEvents;
+}

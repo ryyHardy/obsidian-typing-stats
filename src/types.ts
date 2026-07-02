@@ -1,3 +1,5 @@
+import type { TypingStatsSettings } from './settings';
+
 export type EditEvent = {
 	timestamp: number; // Date.now()
 	fileKey: string;
@@ -22,4 +24,9 @@ export type DailyStats = {
 	burstCount: number;
 	avgWPM: number; // weighted by duration
 	errorEvents: number;
+};
+
+export type TypingStatsData = {
+	settings: TypingStatsSettings;
+	history: Record<string, DailyStats>; // key is date of format `YYYY-MM-DD
 };
