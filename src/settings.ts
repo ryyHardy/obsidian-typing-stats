@@ -26,13 +26,24 @@ export class TypingStatsSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Enable tracking')
-			.setDesc('Whether keystroke tracking is on')
-			.addToggle((toggle) =>
-				toggle.onChange(async (value) => {
-					this.plugin.settings.enabled = value;
+			.setName('New burst threshold (ms)')
+			.setDesc('How much inactive time until a new typing "burst" is started')
+			.addText((text) => {
+				text.inputEl.type = 'number';
+				text.inputEl.min = '1';
+
+				text.setValue(String(this.plugin.settings.newBurstThreshold));
+
+				text.onChange(async (value) => {
+					if (value === '') {
+						// If the user empties the box, set it back to the previous value and stop
+						text.setValue(String(this.plugin.settings.newBurstThreshold));
+						return;
+					}
+					const numValue = Number(value);
+					this.plugin.settings.newBurstThreshold = numValue;
 					await this.plugin.saveSettings();
-				}),
-			);
+				});
+			});
 	}
 }

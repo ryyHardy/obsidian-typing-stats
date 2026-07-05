@@ -77,8 +77,7 @@ export function emptyDailyStats(date: string): DailyStats {
 	return {
 		date,
 		totalActiveMs: 0,
-		totalNetChars: 0,
-		totalGrossChars: 0,
+		totalAddedChars: 0,
 		totalDeletedChars: 0,
 		burstCount: 0,
 		avgWPM: 0,
@@ -93,29 +92,27 @@ export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
 
 	const wpm = burstWPM(burst);
 
-	let netChars = 0;
-	let grossChars = 0;
+	let addedChars = 0;
 	let deletedChars = 0;
 	let errorEvents = 0;
 
 	for (let i = 0; i < burst.length; i++) {
 		const e = burst[i]!;
-		netChars += e.insertedText.length - e.deletedText.length;
-		grossChars += e.insertedText.length + e.deletedText.length;
+		addedChars += e.insertedText.length;
 		deletedChars += e.deletedText.length;
 		if (i > 0 && isBackwardJump(burst[i - 1]!, e)) errorEvents++;
 	}
 
-	// Weighted-average WPM (running average)
-	stats.avgWPM =
+	// Weighted-average WPM (running average, floored)
+	stats.avgWPM = Math.floor(
 		stats.totalActiveMs + duration === 0
 			? 0
 			: (stats.avgWPM * stats.totalActiveMs + wpm * duration) /
-				(stats.totalActiveMs + duration);
+					(stats.totalActiveMs + duration),
+	);
 
 	stats.totalActiveMs += duration;
-	stats.totalNetChars += netChars;
-	stats.totalGrossChars += grossChars;
+	stats.totalAddedChars += addedChars;
 	stats.totalDeletedChars += deletedChars;
 	stats.burstCount += 1;
 	stats.errorEvents += errorEvents;

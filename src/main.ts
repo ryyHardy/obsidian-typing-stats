@@ -13,7 +13,7 @@ import { TypingStatsView, VIEW_TYPE_KEY_STATS } from './view';
 
 const SAVE_DEBOUNCE_MS = 2000;
 
-function dayKeyFor(ts: number): string {
+export function dayKeyFor(ts: number): string {
 	const d = new Date(ts);
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -36,7 +36,10 @@ export default class TypingStats extends Plugin {
 		// Set up commands here if needed
 
 		// Typing stats view
-		this.registerView(VIEW_TYPE_KEY_STATS, (leaf) => new TypingStatsView(leaf));
+		this.registerView(
+			VIEW_TYPE_KEY_STATS,
+			(leaf) => new TypingStatsView(leaf, this),
+		);
 		this.addRibbonIcon('keyboard', 'Typing stats', async () => {
 			await this.activateView();
 		});

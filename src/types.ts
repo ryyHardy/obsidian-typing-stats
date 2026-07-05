@@ -18,8 +18,7 @@ export type EditEvent = {
 export type DailyStats = {
 	date: string;
 	totalActiveMs: number; // sum of burst durations
-	totalNetChars: number;
-	totalGrossChars: number; // added + deleted
+	totalAddedChars: number;
 	totalDeletedChars: number;
 	burstCount: number;
 	avgWPM: number; // weighted by duration
