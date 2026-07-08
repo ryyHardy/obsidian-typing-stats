@@ -9,7 +9,7 @@ import { EditorView } from '@codemirror/view';
 import { DailyStats, EditEvent, TypingStatsData } from './types';
 import { emptyDailyStats, addBurstToDailyStats } from './stats';
 
-import { TypingStatsView, VIEW_TYPE_KEY_STATS } from './view';
+import { TypingStatsView, VIEW_TYPE_TYPING_STATS } from './view';
 
 const SAVE_DEBOUNCE_MS = 2000;
 
@@ -37,7 +37,7 @@ export default class TypingStats extends Plugin {
 
 		// Typing stats view
 		this.registerView(
-			VIEW_TYPE_KEY_STATS,
+			VIEW_TYPE_TYPING_STATS,
 			(leaf) => new TypingStatsView(leaf, this),
 		);
 		this.addRibbonIcon('keyboard', 'Typing stats', async () => {
@@ -47,7 +47,7 @@ export default class TypingStats extends Plugin {
 		// Listen for document changes to update stats
 		this.registerEditorExtension(
 			EditorView.updateListener.of((update) => {
-				if (!update.docChanged) return;
+				if (!update.docChanged || !this.settings.enabled) return;
 
 				const now = Date.now();
 				const fileKey = this.app.workspace.getActiveFile()?.path ?? '';
@@ -99,14 +99,15 @@ export default class TypingStats extends Plugin {
 		const { workspace } = this.app;
 
 		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_KEY_STATS);
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_TYPING_STATS);
 
-		if (leaves.length > 0) {
-			leaf = leaves[0] ?? null;
+		if (leaves.length > 0 && leaves[0] != null) {
+			leaf = leaves[0];
+			await workspace.revealLeaf(leaf);
 		} else {
 			leaf = workspace.getRightLeaf(false)!;
 			await leaf.setViewState({
-				type: VIEW_TYPE_KEY_STATS,
+				type: VIEW_TYPE_TYPING_STATS,
 				active: true,
 			});
 

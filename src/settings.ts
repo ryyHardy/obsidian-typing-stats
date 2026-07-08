@@ -12,6 +12,8 @@ export const DEFAULT_SETTINGS: TypingStatsSettings = {
 	newBurstThreshold: 2000,
 };
 
+const MIN_BURST_THRESHOLD = 500;
+
 export class TypingStatsSettingTab extends PluginSettingTab {
 	plugin: TypingStats;
 
@@ -26,22 +28,32 @@ export class TypingStatsSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
+			.setName('Enabled')
+			.setDesc(
+				'Whether typing analysis is on (you can still browse previous stats if off)',
+			)
+			.addToggle((cb) => {
+				cb.setValue(this.plugin.settings.enabled);
+				cb.onChange(async (value) => {
+					this.plugin.settings.enabled = value;
+					await this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
 			.setName('New burst threshold (ms)')
 			.setDesc('How much inactive time until a new typing "burst" is started')
 			.addText((text) => {
 				text.inputEl.type = 'number';
-				text.inputEl.min = '1';
+				text.inputEl.min = '500';
 
 				text.setValue(String(this.plugin.settings.newBurstThreshold));
 
 				text.onChange(async (value) => {
-					if (value === '') {
-						// If the user empties the box, set it back to the previous value and stop
-						text.setValue(String(this.plugin.settings.newBurstThreshold));
+					if (Number(value) < MIN_BURST_THRESHOLD) {
 						return;
 					}
-					const numValue = Number(value);
-					this.plugin.settings.newBurstThreshold = numValue;
+					this.plugin.settings.newBurstThreshold = Number(value);
 					await this.plugin.saveSettings();
 				});
 			});

@@ -2,7 +2,7 @@ import { IconName, ItemView, WorkspaceLeaf } from 'obsidian';
 
 import TypingStats, { dayKeyFor } from './main';
 
-export const VIEW_TYPE_KEY_STATS = 'typing-stats-view';
+export const VIEW_TYPE_TYPING_STATS = 'typing-stats-view';
 
 export class TypingStatsView extends ItemView {
 	wpmEl: HTMLElement | null = null;
@@ -14,7 +14,7 @@ export class TypingStatsView extends ItemView {
 	}
 
 	getViewType() {
-		return VIEW_TYPE_KEY_STATS;
+		return VIEW_TYPE_TYPING_STATS;
 	}
 
 	getDisplayText() {
@@ -39,7 +39,10 @@ export class TypingStatsView extends ItemView {
 			createFragment((root) => {
 				root.createEl('h4', { text: 'Typing stats' });
 				const selectEl = root.createEl('select', {}, (sel) => {
-					for (const day of Object.keys(this.plugin.history)) {
+					const days = Object.keys(this.plugin.history).sort((a, b) =>
+						b.localeCompare(a),
+					);
+					for (const day of days) {
 						const optionEl = sel.createEl('option', { value: day, text: day });
 
 						// If the day key matches today's date, make it the default option
@@ -61,8 +64,8 @@ export class TypingStatsView extends ItemView {
 		);
 	}
 
-	private renderDayStats(root: HTMLElement | DocumentFragment, dayKey: string) {
-		root.replaceChildren(); // clear the inside first
+	private renderDayStats(container: HTMLElement, dayKey: string) {
+		container.empty(); // clear the inside first
 		const stats = this.plugin.history[dayKey];
 		if (!stats) {
 			return;
@@ -72,9 +75,9 @@ export class TypingStatsView extends ItemView {
 
 		// TODO: Think of some other aggregate stats that might be useful
 
-		root.createEl('h5', { text: `Stats for ${dayKey}` });
+		container.createEl('h5', { text: `Stats for ${dayKey}` });
 
-		root.createEl('ul', {}, (ul) => {
+		container.createEl('ul', {}, (ul) => {
 			ul.createEl('li', {
 				text: `Active Time (s): ${Math.round(activeSeconds)}`,
 			});
