@@ -33,38 +33,67 @@ export class TypingStatsView extends ItemView {
 		const container = this.contentEl;
 		container.empty();
 
+		const todayKey = dayKeyFor(Number(new Date()));
+
 		container.append(
 			createFragment((root) => {
 				root.createEl('h4', { text: 'Typing stats' });
-				root.createEl('hr');
-				root.createEl('h5', {
-					text: `Today (${new Date().toLocaleDateString()})`,
+				const selectEl = root.createEl('select', {}, (sel) => {
+					for (const day of Object.keys(this.plugin.history)) {
+						const optionEl = sel.createEl('option', { value: day, text: day });
+
+						// If the day key matches today's date, make it the default option
+						if (day === todayKey) {
+							optionEl.selected = true;
+							optionEl.textContent = `${day} (today)`;
+						}
+					}
 				});
-				root.createEl('ul', {}, (ul) => {
-					ul.createEl('li', {
-						text: `Average WPM: ${this.plugin.todayStats.avgWPM}`,
-					});
-					ul.createEl('li', {
-						text: `# of Bursts: ${this.plugin.todayStats.burstCount}`,
-					});
-					ul.createEl('li', {
-						text: `Errors: ${this.plugin.todayStats.errorEvents}`,
-					});
-					ul.createEl('li', {
-						text: `Active Time (s): ${Math.round(this.plugin.todayStats.totalActiveMs / 1000)}`,
-					});
-					ul.createEl('li', {
-						text: `Total Chars Added: ${this.plugin.todayStats.totalAddedChars}`,
-					});
-					ul.createEl('li', {
-						text: `Total Chars Deleted: ${this.plugin.todayStats.totalDeletedChars}`,
-					});
-					ul.createEl('li', {
-						text: `Net Chars (Added - Deleted): ${this.plugin.todayStats.totalAddedChars - this.plugin.todayStats.totalDeletedChars}`,
-					});
+				const statsContainer = root.createDiv('typing-stats-container');
+
+				this.renderDayStats(statsContainer, todayKey);
+
+				this.registerDomEvent(selectEl, 'change', (event: Event) => {
+					const target = event.target as HTMLSelectElement;
+					this.renderDayStats(statsContainer, target.value);
 				});
 			}),
 		);
+	}
+
+	private renderDayStats(root: HTMLElement | DocumentFragment, dayKey: string) {
+		root.replaceChildren(); // clear the inside first
+		const stats = this.plugin.history[dayKey];
+		if (!stats) {
+			return;
+		}
+
+		const activeSeconds = stats.totalActiveMs / 1000;
+
+		// TODO: Think of some other aggregate stats that might be useful
+
+		root.createEl('h5', { text: `Stats for ${dayKey}` });
+
+		root.createEl('ul', {}, (ul) => {
+			ul.createEl('li', {
+				text: `Active Time (s): ${Math.round(activeSeconds)}`,
+			});
+			ul.createEl('li', { text: `Average WPM: ${stats.avgWPM}` });
+			ul.createEl('li', { text: `# of Bursts: ${stats.burstCount}` });
+			ul.createEl('li', { text: `Error Events: ${stats.errorEvents}` });
+			ul.createEl('li', {
+				text: `Errors per second: ${activeSeconds !== 0 ? (stats.errorEvents / activeSeconds).toFixed(1) : 0}`,
+			});
+			ul.createEl('li', {
+				text: `Total Chars Added: ${stats.totalAddedChars}`,
+			});
+			ul.createEl('li', {
+				text: `Total Chars Deleted: ${stats.totalDeletedChars}`,
+			});
+			ul.createEl('li', {
+				text: `Net Chars (Added - Deleted): ${stats.totalAddedChars - stats.totalDeletedChars}`,
+			});
+		});
 	}
 
 	async onClose() {
