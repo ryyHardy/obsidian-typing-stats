@@ -1,33 +1,6 @@
 import { EditEvent, DailyStats } from './types';
 
 /**
- * Divides an array of edit events into "bursts" based on their timing
- * @param changes The array of edits to divide
- * @param gapThreshold Smallest time gap (ms) needed to put the next edit into a new burst
- * @returns Array of bursts
- */
-export function getBursts(
-	edits: EditEvent[],
-	gapThreshold = 2000,
-): EditEvent[][] {
-	const bursts: EditEvent[][] = [];
-	let current: EditEvent[] = [];
-
-	for (const edit of edits) {
-		if (
-			current.length > 0 &&
-			edit.timestamp - current[current.length - 1]!.timestamp > gapThreshold
-		) {
-			bursts.push(current);
-			current = [];
-		}
-		current.push(edit);
-	}
-	if (current.length > 0) bursts.push(current);
-	return bursts;
-}
-
-/**
  * Calculates the WPM of a burst
  * @param burst Burst as a list of edits
  * @param minWindowMs The burst duration to use if the burst lasts shorter than this (accounts for very shorts bursts and makes WPM more sensible early in a burst)
@@ -47,26 +20,6 @@ export function burstWPM(burst: EditEvent[], minWindowMs = 3000): number {
 		0,
 	);
 	return Math.max(0, netChars) / 5 / durationMinutes;
-}
-
-/**
- * Calculates your overall WPM across the session
- * @param bursts Array of bursts
- * @returns Average WPM across all the bursts, disregarding very short ones
- */
-export function weightedSessionWPM(bursts: EditEvent[][]): number {
-	let totalWeightedWPM = 0;
-	let totalDuration = 0;
-
-	for (const burst of bursts) {
-		const duration = burst[burst.length - 1]!.timestamp - burst[0]!.timestamp;
-		if (duration < 500) continue; // skip single-event or near-instant bursts
-		const wpm = burstWPM(burst);
-		totalWeightedWPM += wpm * duration;
-		totalDuration += duration;
-	}
-
-	return totalDuration === 0 ? 0 : totalWeightedWPM / totalDuration;
 }
 
 export function isBackwardJump(prev: EditEvent, curr: EditEvent): boolean {
@@ -116,4 +69,24 @@ export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
 	stats.totalDeletedChars += deletedChars;
 	stats.burstCount += 1;
 	stats.errorEvents += errorEvents;
+}
+
+// TODO: Consider whether we should count pasting/autocompletion events into stats. Right now, we do
+export function shouldDiscardBurst(
+	burst: EditEvent[],
+	minBurstDuration: number,
+): boolean {
+	if (burst.length === 0) return true;
+
+	const duration = burst[burst.length - 1]!.timestamp - burst[0]!.timestamp;
+	if (duration >= minBurstDuration) return false;
+
+	// accounts for instant actions like paste, autocomplete, etc.
+	const charsChanged = burst.reduce(
+		(sum, e) => sum + e.insertedText.length + e.deletedText.length,
+		0,
+	);
+
+	const TRIVIAL_EDIT_CHARS = 1; // don't count single stray characters typed
+	return charsChanged <= TRIVIAL_EDIT_CHARS;
 }

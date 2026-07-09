@@ -5,8 +5,10 @@ import TypingStats, { dayKeyFor } from './main';
 export const VIEW_TYPE_TYPING_STATS = 'typing-stats-view';
 
 export class TypingStatsView extends ItemView {
-	wpmEl: HTMLElement | null = null;
 	plugin: TypingStats;
+
+	private statsContainer!: HTMLElement;
+	private selectedDayKey!: string;
 
 	constructor(leaf: WorkspaceLeaf, plugin: TypingStats) {
 		super(leaf);
@@ -33,11 +35,18 @@ export class TypingStatsView extends ItemView {
 		const container = this.contentEl;
 		container.empty();
 
-		const todayKey = dayKeyFor(Number(new Date()));
+		const todayKey = dayKeyFor(Date.now());
+		this.selectedDayKey = todayKey;
 
 		container.append(
 			createFragment((root) => {
 				root.createEl('h4', { text: 'Typing stats' });
+				if (Object.keys(this.plugin.history).length === 0) {
+					root.createEl('strong', {
+						text: 'No stats yet. Start typing in a note to generate!',
+					});
+					return;
+				}
 				const selectEl = root.createEl('select', {}, (sel) => {
 					const days = Object.keys(this.plugin.history).sort((a, b) =>
 						b.localeCompare(a),
@@ -52,13 +61,14 @@ export class TypingStatsView extends ItemView {
 						}
 					}
 				});
-				const statsContainer = root.createDiv('typing-stats-container');
+				this.statsContainer = root.createDiv('typing-stats-container');
 
-				this.renderDayStats(statsContainer, todayKey);
+				this.renderDayStats(this.statsContainer, todayKey);
 
 				this.registerDomEvent(selectEl, 'change', (event: Event) => {
 					const target = event.target as HTMLSelectElement;
-					this.renderDayStats(statsContainer, target.value);
+					this.selectedDayKey = target.value;
+					this.renderDayStats(this.statsContainer, target.value);
 				});
 			}),
 		);
@@ -68,6 +78,9 @@ export class TypingStatsView extends ItemView {
 		container.empty(); // clear the inside first
 		const stats = this.plugin.history[dayKey];
 		if (!stats) {
+			container.createEl('strong', {
+				text: 'No stats yet for today. Start typing in a note to generate!',
+			});
 			return;
 		}
 
@@ -97,6 +110,14 @@ export class TypingStatsView extends ItemView {
 				text: `Net Chars (Added - Deleted): ${stats.totalAddedChars - stats.totalDeletedChars}`,
 			});
 		});
+	}
+
+	refresh() {
+		if (!this.statsContainer) {
+			this.renderViewContent();
+			return;
+		}
+		this.renderDayStats(this.statsContainer, this.selectedDayKey);
 	}
 
 	async onClose() {

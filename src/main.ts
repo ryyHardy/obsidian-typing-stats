@@ -7,7 +7,11 @@ import {
 
 import { EditorView } from '@codemirror/view';
 import { DailyStats, EditEvent, TypingStatsData } from './types';
-import { emptyDailyStats, addBurstToDailyStats } from './stats';
+import {
+	emptyDailyStats,
+	addBurstToDailyStats,
+	shouldDiscardBurst,
+} from './stats';
 
 import { TypingStatsView, VIEW_TYPE_TYPING_STATS } from './view';
 
@@ -24,6 +28,8 @@ export default class TypingStats extends Plugin {
 
 	// A "burst" is a sequence of changes happening very close to each other
 	currentBurst: EditEvent[] = [];
+	private burstTimer: number | null = null;
+
 	todayStats!: DailyStats;
 
 	private saveTimer: number | null = null;
@@ -89,6 +95,7 @@ export default class TypingStats extends Plugin {
 							selectionBefore,
 							selectionAfter,
 						});
+						this.scheduleBurstTimeout();
 					});
 				}
 			}),
@@ -120,16 +127,18 @@ export default class TypingStats extends Plugin {
 		void this.flushSave();
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<TypingStatsSettings>,
-		);
-	}
-
 	private closeBurst() {
+		if (this.burstTimer !== null) {
+			window.clearTimeout(this.burstTimer);
+			this.burstTimer = null;
+		}
 		if (this.currentBurst.length === 0) return;
+
+		if (shouldDiscardBurst(this.currentBurst, this.settings.minBurstDuration)) {
+			this.currentBurst = [];
+			return; // Don't count burst if it is non-instant and shorter than the user-specified minimum
+		}
+
 		const dayKey = dayKeyFor(
 			this.currentBurst[this.currentBurst.length - 1]!.timestamp,
 		);
@@ -142,6 +151,25 @@ export default class TypingStats extends Plugin {
 		addBurstToDailyStats(this.todayStats, this.currentBurst);
 		this.currentBurst = [];
 		this.queueSave();
+		this.updateView(); // Update stats in the view for those who have it open
+	}
+
+	private scheduleBurstTimeout() {
+		if (this.burstTimer !== null) window.clearTimeout(this.burstTimer);
+		this.burstTimer = window.setTimeout(() => {
+			this.burstTimer = null;
+			this.closeBurst();
+		}, this.settings.newBurstThreshold);
+	}
+
+	private updateView() {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_TYPING_STATS);
+		for (const leaf of leaves) {
+			const view = leaf.view;
+			if (view instanceof TypingStatsView) {
+				view.refresh();
+			}
+		}
 	}
 
 	private async loadPluginData() {
