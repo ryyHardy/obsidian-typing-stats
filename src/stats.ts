@@ -26,6 +26,28 @@ export function isBackwardJump(prev: EditEvent, curr: EditEvent): boolean {
 	return curr.deletedFrom < prev.insertedTo;
 }
 
+/**
+ * True if `curr` deletes text that overlaps with what `prev` just inserted,
+ * within a short time window (i.e. immediate correction after a mistake)
+ * @param prev The previous edit
+ * @param curr The current edit
+ * @param maxGapMs The highest gap between
+ * @returns
+ */
+export function isCorrection(
+	prev: EditEvent,
+	curr: EditEvent,
+	maxGapMs = 1000,
+): boolean {
+	if (curr.timestamp - prev.timestamp > maxGapMs) return false;
+	if (curr.deletedText.length === 0) return false; // must actually delete something
+
+	// Whether the deletion range overlaps the insertion range
+	return (
+		curr.deletedFrom < prev.insertedTo && curr.deletedTo > prev.insertedFrom
+	);
+}
+
 export function emptyDailyStats(date: string): DailyStats {
 	return {
 		date,
@@ -53,7 +75,7 @@ export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
 		const e = burst[i]!;
 		addedChars += e.insertedText.length;
 		deletedChars += e.deletedText.length;
-		if (i > 0 && isBackwardJump(burst[i - 1]!, e)) errorEvents++;
+		if (i > 0 && isCorrection(burst[i - 1]!, e)) errorEvents++;
 	}
 
 	// Weighted-average WPM (running average, floored)
