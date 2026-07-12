@@ -1,16 +1,16 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import {
-	TypingStatsSettings,
-	DEFAULT_SETTINGS,
-	TypingStatsSettingTab,
+  TypingStatsSettings,
+  DEFAULT_SETTINGS,
+  TypingStatsSettingTab,
 } from './settings';
 
 import { EditorView } from '@codemirror/view';
 import { DailyStats, EditEvent, TypingStatsData } from './types';
 import {
-	emptyDailyStats,
-	addBurstToDailyStats,
-	shouldDiscardBurst,
+  emptyDailyStats,
+  addBurstToDailyStats,
+  shouldDiscardBurst,
 } from './stats';
 
 import { TypingStatsView, VIEW_TYPE_TYPING_STATS } from './view';
@@ -18,192 +18,192 @@ import { TypingStatsView, VIEW_TYPE_TYPING_STATS } from './view';
 const SAVE_DEBOUNCE_MS = 2000;
 
 export function dayKeyFor(ts: number): string {
-	const d = new Date(ts);
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export default class TypingStats extends Plugin {
-	settings!: TypingStatsSettings;
-	history: Record<string, DailyStats> = {};
+  settings!: TypingStatsSettings;
+  history: Record<string, DailyStats> = {};
 
-	// A "burst" is a sequence of changes happening very close to each other
-	currentBurst: EditEvent[] = [];
-	private burstTimer: number | null = null;
+  // A "burst" is a sequence of changes happening very close to each other
+  currentBurst: EditEvent[] = [];
+  private burstTimer: number | null = null;
 
-	todayStats!: DailyStats;
+  todayStats!: DailyStats;
 
-	private saveTimer: number | null = null;
+  private saveTimer: number | null = null;
 
-	async onload() {
-		// Settings
-		await this.loadPluginData();
-		this.addSettingTab(new TypingStatsSettingTab(this.app, this));
+  async onload() {
+    // Settings
+    await this.loadPluginData();
+    this.addSettingTab(new TypingStatsSettingTab(this.app, this));
 
-		// Set up commands here if needed
+    // Set up commands here if needed
 
-		// Typing stats view
-		this.registerView(
-			VIEW_TYPE_TYPING_STATS,
-			(leaf) => new TypingStatsView(leaf, this),
-		);
-		this.addRibbonIcon('keyboard', 'Typing stats', async () => {
-			await this.activateView();
-		});
+    // Typing stats view
+    this.registerView(
+      VIEW_TYPE_TYPING_STATS,
+      (leaf) => new TypingStatsView(leaf, this),
+    );
+    this.addRibbonIcon('keyboard', 'Typing stats', async () => {
+      await this.activateView();
+    });
 
-		// Listen for document changes to update stats
-		this.registerEditorExtension(
-			EditorView.updateListener.of((update) => {
-				if (!update.docChanged || !this.settings.enabled) return;
+    // Listen for document changes to update stats
+    this.registerEditorExtension(
+      EditorView.updateListener.of((update) => {
+        if (!update.docChanged || !this.settings.enabled) return;
 
-				const now = Date.now();
-				const fileKey = this.app.workspace.getActiveFile()?.path ?? '';
+        const now = Date.now();
+        const fileKey = this.app.workspace.getActiveFile()?.path ?? '';
 
-				for (const tr of update.transactions) {
-					if (!tr.docChanged) continue;
+        for (const tr of update.transactions) {
+          if (!tr.docChanged) continue;
 
-					const selectionBefore = {
-						anchor: tr.startState.selection.main.anchor,
-						head: tr.startState.selection.main.head,
-					};
-					const selectionAfter = {
-						anchor: tr.newSelection.main.anchor,
-						head: tr.newSelection.main.head,
-					};
+          const selectionBefore = {
+            anchor: tr.startState.selection.main.anchor,
+            head: tr.startState.selection.main.head,
+          };
+          const selectionAfter = {
+            anchor: tr.newSelection.main.anchor,
+            head: tr.newSelection.main.head,
+          };
 
-					tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
-						const deletedText = tr.startState.doc.sliceString(fromA, toA);
-						const insertedText = inserted.toString();
-						const lastTs =
-							this.currentBurst[this.currentBurst.length - 1]?.timestamp;
+          tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+            const deletedText = tr.startState.doc.sliceString(fromA, toA);
+            const insertedText = inserted.toString();
+            const lastTs =
+              this.currentBurst[this.currentBurst.length - 1]?.timestamp;
 
-						if (
-							lastTs !== undefined &&
-							now - lastTs > this.settings.newBurstThreshold
-						) {
-							this.closeBurst();
-						}
-						// Continue current burst
-						this.currentBurst.push({
-							timestamp: now,
-							fileKey,
-							deletedFrom: fromA,
-							deletedTo: toA,
-							deletedText,
-							insertedFrom: fromB,
-							insertedTo: toB,
-							insertedText,
-							selectionBefore,
-							selectionAfter,
-						});
-						this.scheduleBurstTimeout();
-					});
-				}
-			}),
-		);
-	}
+            if (
+              lastTs !== undefined &&
+              now - lastTs > this.settings.newBurstThreshold
+            ) {
+              this.closeBurst();
+            }
+            // Continue current burst
+            this.currentBurst.push({
+              timestamp: now,
+              fileKey,
+              deletedFrom: fromA,
+              deletedTo: toA,
+              deletedText,
+              insertedFrom: fromB,
+              insertedTo: toB,
+              insertedText,
+              selectionBefore,
+              selectionAfter,
+            });
+            this.scheduleBurstTimeout();
+          });
+        }
+      }),
+    );
+  }
 
-	async activateView() {
-		const { workspace } = this.app;
+  async activateView() {
+    const { workspace } = this.app;
 
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_TYPING_STATS);
+    let leaf: WorkspaceLeaf | null = null;
+    const leaves = workspace.getLeavesOfType(VIEW_TYPE_TYPING_STATS);
 
-		if (leaves.length > 0 && leaves[0] != null) {
-			leaf = leaves[0];
-			await workspace.revealLeaf(leaf);
-		} else {
-			leaf = workspace.getRightLeaf(false)!;
-			await leaf.setViewState({
-				type: VIEW_TYPE_TYPING_STATS,
-				active: true,
-			});
+    if (leaves.length > 0 && leaves[0] != null) {
+      leaf = leaves[0];
+      await workspace.revealLeaf(leaf);
+    } else {
+      leaf = workspace.getRightLeaf(false)!;
+      await leaf.setViewState({
+        type: VIEW_TYPE_TYPING_STATS,
+        active: true,
+      });
 
-			await workspace.revealLeaf(leaf);
-		}
-	}
+      await workspace.revealLeaf(leaf);
+    }
+  }
 
-	onunload() {
-		this.closeBurst();
-		void this.flushSave();
-	}
+  onunload() {
+    this.closeBurst();
+    void this.flushSave();
+  }
 
-	private closeBurst() {
-		if (this.burstTimer !== null) {
-			window.clearTimeout(this.burstTimer);
-			this.burstTimer = null;
-		}
-		if (this.currentBurst.length === 0) return;
+  private closeBurst() {
+    if (this.burstTimer !== null) {
+      window.clearTimeout(this.burstTimer);
+      this.burstTimer = null;
+    }
+    if (this.currentBurst.length === 0) return;
 
-		if (shouldDiscardBurst(this.currentBurst, this.settings.minBurstDuration)) {
-			this.currentBurst = [];
-			return; // Don't count burst if it is non-instant and shorter than the user-specified minimum
-		}
+    if (shouldDiscardBurst(this.currentBurst, this.settings.minBurstDuration)) {
+      this.currentBurst = [];
+      return; // Don't count burst if it is non-instant and shorter than the user-specified minimum
+    }
 
-		const dayKey = dayKeyFor(
-			this.currentBurst[this.currentBurst.length - 1]!.timestamp,
-		);
-		if (dayKey !== this.todayStats.date) {
-			// Day boundary crossed during burst
-			void this.flushSave();
-			this.todayStats = this.history[dayKey] ??= emptyDailyStats(dayKey);
-		}
+    const dayKey = dayKeyFor(
+      this.currentBurst[this.currentBurst.length - 1]!.timestamp,
+    );
+    if (dayKey !== this.todayStats.date) {
+      // Day boundary crossed during burst
+      void this.flushSave();
+      this.todayStats = this.history[dayKey] ??= emptyDailyStats(dayKey);
+    }
 
-		addBurstToDailyStats(this.todayStats, this.currentBurst);
-		this.currentBurst = [];
-		this.queueSave();
-		this.updateView(); // Update stats in the view for those who have it open
-	}
+    addBurstToDailyStats(this.todayStats, this.currentBurst);
+    this.currentBurst = [];
+    this.queueSave();
+    this.updateView(); // Update stats in the view for those who have it open
+  }
 
-	private scheduleBurstTimeout() {
-		if (this.burstTimer !== null) window.clearTimeout(this.burstTimer);
-		this.burstTimer = window.setTimeout(() => {
-			this.burstTimer = null;
-			this.closeBurst();
-		}, this.settings.newBurstThreshold);
-	}
+  private scheduleBurstTimeout() {
+    if (this.burstTimer !== null) window.clearTimeout(this.burstTimer);
+    this.burstTimer = window.setTimeout(() => {
+      this.burstTimer = null;
+      this.closeBurst();
+    }, this.settings.newBurstThreshold);
+  }
 
-	private updateView() {
-		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_TYPING_STATS);
-		for (const leaf of leaves) {
-			const view = leaf.view;
-			if (view instanceof TypingStatsView) {
-				view.refresh();
-			}
-		}
-	}
+  private updateView() {
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_TYPING_STATS);
+    for (const leaf of leaves) {
+      const view = leaf.view;
+      if (view instanceof TypingStatsView) {
+        view.refresh();
+      }
+    }
+  }
 
-	private async loadPluginData() {
-		const data = (await this.loadData()) as Partial<TypingStatsData> | null;
+  private async loadPluginData() {
+    const data = (await this.loadData()) as Partial<TypingStatsData> | null;
 
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data?.settings);
-		this.history = data?.history ?? {};
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, data?.settings);
+    this.history = data?.history ?? {};
 
-		const today = dayKeyFor(Date.now());
-		this.todayStats = this.history[today] ?? emptyDailyStats(today);
-		this.history[today] = this.todayStats;
-	}
+    const today = dayKeyFor(Date.now());
+    this.todayStats = this.history[today] ?? emptyDailyStats(today);
+    this.history[today] = this.todayStats;
+  }
 
-	private queueSave() {
-		if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
-		this.saveTimer = window.setTimeout(
-			() => void this.flushSave(),
-			SAVE_DEBOUNCE_MS,
-		);
-	}
+  private queueSave() {
+    if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
+    this.saveTimer = window.setTimeout(
+      () => void this.flushSave(),
+      SAVE_DEBOUNCE_MS,
+    );
+  }
 
-	private async flushSave() {
-		if (this.saveTimer !== null) {
-			window.clearTimeout(this.saveTimer);
-			this.saveTimer = null;
-		}
-		const data: TypingStatsData = {
-			settings: this.settings,
-			history: this.history,
-		};
-		await this.saveData(data);
-	}
+  private async flushSave() {
+    if (this.saveTimer !== null) {
+      window.clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    const data: TypingStatsData = {
+      settings: this.settings,
+      history: this.history,
+    };
+    await this.saveData(data);
+  }
 
-	async saveSettings() {
-		await this.flushSave();
-	}
+  async saveSettings() {
+    await this.flushSave();
+  }
 }
