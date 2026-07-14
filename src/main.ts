@@ -39,7 +39,22 @@ export default class TypingStats extends Plugin {
     await this.loadPluginData();
     this.addSettingTab(new TypingStatsSettingTab(this.app, this));
 
-    // Set up commands here if needed
+    // Set up commands
+    this.addCommand({
+      id: 'toggle-typing-analysis',
+      name: 'Toggle typing analysis',
+      callback: () => {
+        this.settings.enabled = !this.settings.enabled;
+        void this.saveSettings();
+      },
+    });
+    this.addCommand({
+      id: 'open-typing-stat-view',
+      name: 'Open typing stat viewer',
+      callback: () => {
+        void this.activateView();
+      },
+    });
 
     // Typing stats view
     this.registerView(
