@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Notice, Plugin, WorkspaceLeaf } from 'obsidian';
 import {
   TypingStatsSettings,
   DEFAULT_SETTINGS,
@@ -45,6 +45,10 @@ export default class TypingStats extends Plugin {
       name: 'Toggle typing analysis',
       callback: () => {
         this.settings.enabled = !this.settings.enabled;
+        new Notice(
+          `Typing analysis turned ${this.settings.enabled ? 'ON' : 'OFF'}.`,
+          5000,
+        );
         void this.saveSettings();
       },
     });

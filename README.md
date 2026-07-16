@@ -2,6 +2,12 @@
 
 Work on your notes and your typing skills at the same time with this Obsidian plugin! It calculates a bunch of typing statistics in the background while you take notes.
 
+## Installation
+
+- Typing Stats is available on the [Obsidian Community Plugins repository](https://community.obsidian.md/search?q=Typing%20Stats).
+
+See the [CHANGELOG](./CHANGELOD.md) for more details on each version.
+
 ## Included Stats
 
 Stats are compiled by day in your plugin data. You can view your history of these stats over multiple days:
@@ -15,7 +21,7 @@ Stats are compiled by day in your plugin data. You can view your history of thes
   $$
 
 - **Corrections**: An estimate of how often you type something and immediately correct it. Happens when, shortly after inserting text, you delete something that overlaps with what you just typed.
-  - Not a perfect measure. I am actively thinking of other ways to infer when errors happen.
+  - Not a perfect measure of error. I am actively thinking of other ways to infer when errors happen.
 
 - **Corrections per minute** - Number of corrections divided by your active time in minutes.
 
@@ -65,6 +71,7 @@ In the history, each day has the stats compiled during that day. You can use thi
 
 ## Future Plans
 
+- An "ignore list" of files that the user doesn't want their typing tracked in.
 - A "consistency" stat calculated based on the variance of your speed and error rate.
 - Making the stats view less ugly.
 - Ensuring the plugin can track statistics while the user is switching between files.
@@ -73,5 +80,8 @@ In the history, each day has the stats compiled during that day. You can use thi
 - A status bar item showing WPM or consistency. It could also be customizable.
 - Ability to download stats as a single CSV file, so you can personally view trends over time.
 - More settings to tweak how stats are calculated.
-- An "ignore list" of files that the user doesn't want their typing tracked in.
 - (Bonus) Resisting the temptation of overengineering this thing.
+
+## Want to contribute?
+
+Check out [CONTRIBUTING.md](./CONTRIBUTING.md).
