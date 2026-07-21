@@ -1,0 +1,8 @@
+.setting-item-control input.mod-error {
+  border-color: var(--text-error) !important;
+  box-shadow: 0 0 0 1px var(--text-error) !important;
+}
+
+.setting-item-description.mod-error {
+  color: var(--text-error);
+}
