@@ -148,9 +148,7 @@ export class TypingStatsSettingTab extends PluginSettingTab {
           type: 'number',
           key: 'minBurstDuration',
           validate: (value: number) =>
-            value <= MIN_MIN_BURST_DURATION
-              ? `Value must be at least ${MIN_MIN_BURST_DURATION}`
-              : undefined,
+            validateNumber(String(value), MIN_MIN_BURST_DURATION),
         },
       },
       {
@@ -160,9 +158,7 @@ export class TypingStatsSettingTab extends PluginSettingTab {
           type: 'number',
           key: 'newBurstThreshold',
           validate: (value: number) =>
-            value <= MIN_BURST_THRESHOLD
-              ? `Value must be at least ${MIN_BURST_THRESHOLD}`
-              : undefined,
+            validateNumber(String(value), MIN_BURST_THRESHOLD),
         },
       },
     ];
