@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consistency stat
 - Improved stat calculation while switching files
 
+## [1.1.0] - 2026-07-20
+
+### Added
+
+- Support for 1.13.0+ (currently insider builds) and the upcoming declarative settings API
+- For <1.13.0, improved validation and user feedback for number inputs in the settings
+
+### Fixed
+
+- Validation bug causing the "new burst threshold" setting to be uneditable
+
 ## [1.0.0] - 2026-07-16
 
 ### Added

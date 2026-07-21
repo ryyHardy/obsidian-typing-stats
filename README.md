@@ -1,6 +1,8 @@
 # Obsidian Typing Stats
 
-Work on your notes and your typing skills at the same time with this Obsidian plugin! It calculates a bunch of typing statistics in the background while you take notes.
+Work on your notes and your typing skills at the same time with this Obsidian plugin! It calculates a bunch of typing statistics in the background while you take notes. You can analyze these stats over time to find areas of improvement.
+
+![Typing stats viewer screenshot](./assets/viewer-screenshot.png)
 
 ## Installation
 
@@ -16,9 +18,7 @@ Stats are compiled by day in your plugin data. You can view your history of thes
 - **Bursts** - How many typing bursts occurred. A "burst" is a sequence of edits with no gap longer than the "new burst threshold" setting (2 seconds by default) between them. Once you pause for longer than that, the current burst ends and the next edit starts a new one. Bursts shorter than "minimum burst duration" are not counted, to filter out small ones or stray keystrokes.
 - **Average WPM** - Average of your net words per minute over time. Net WPM uses the following formula:
 
-  $$
-  \text{Net WPM} = \frac{\max(0, \text{added characters} - \text{deleted characters})}{5 \times \text{typing duration in minutes}}
-  $$
+  ![Net words per minute equals net characters (added minus deleted, minimum zero) divided by 5 times duration in minutes](./assets/net-wpm-formula.png)
 
 - **Corrections**: An estimate of how often you type something and immediately correct it. Happens when, shortly after inserting text, you delete something that overlaps with what you just typed.
   - Not a perfect measure of error. I am actively thinking of other ways to infer when errors happen.
