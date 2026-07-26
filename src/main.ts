@@ -5,21 +5,43 @@ import {
   TypingStatsSettingTab,
 } from './settings';
 
+import { shouldIgnoreFile } from './independent';
+
 import { EditorView } from '@codemirror/view';
 import { DailyStats, EditEvent, TypingStatsData } from './types';
 import {
-  emptyDailyStats,
   addBurstToDailyStats,
   shouldDiscardBurst,
+  toDailyStats,
 } from './stats';
 
 import { TypingStatsView, VIEW_TYPE_TYPING_STATS } from './view';
+import { CURRENT_SCHEMA_VERSION, migratePluginData } from './migrations';
 
 const SAVE_DEBOUNCE_MS = 2000;
 
 export function dayKeyFor(ts: number): string {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Converts old/incomplete versions of the settings schema into the most updated version
+ * Used for updating  users' `data.json` files to a changed schema in a new version of the plugin
+ * @param existing The old/incomplete settings that must be updated
+ * @returns The updated settings
+ */
+function normalizedSettings(
+  existing: Partial<TypingStatsSettings> | undefined,
+): TypingStatsSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...existing,
+    // ...add settings to be adjusted below, EX:
+    // fileIgnorePatterns: Array.isArray(existing?.fileIgnorePatterns)
+    //   ? existing.fileIgnorePatterns
+    //   : [],
+  };
 }
 
 export default class TypingStats extends Plugin {
@@ -74,8 +96,12 @@ export default class TypingStats extends Plugin {
       EditorView.updateListener.of((update) => {
         if (!update.docChanged || !this.settings.enabled) return;
 
+        const filePath = this.app.workspace.getActiveFile()?.path ?? '';
+        if (shouldIgnoreFile(filePath, this.settings.fileIgnorePatterns)) {
+          return;
+        }
+
         const now = Date.now();
-        const fileKey = this.app.workspace.getActiveFile()?.path ?? '';
 
         for (const tr of update.transactions) {
           if (!tr.docChanged) continue;
@@ -104,7 +130,7 @@ export default class TypingStats extends Plugin {
             // Continue current burst
             this.currentBurst.push({
               timestamp: now,
-              fileKey,
+              fileKey: filePath,
               deletedFrom: fromA,
               deletedTo: toA,
               deletedText,
@@ -164,7 +190,8 @@ export default class TypingStats extends Plugin {
     if (dayKey !== this.todayStats.date) {
       // Day boundary crossed during burst
       void this.flushSave();
-      this.todayStats = this.history[dayKey] ??= emptyDailyStats(dayKey);
+      this.todayStats = toDailyStats(dayKey, this.history[dayKey]);
+      this.history[dayKey] = this.todayStats;
     }
 
     addBurstToDailyStats(this.todayStats, this.currentBurst);
@@ -192,14 +219,33 @@ export default class TypingStats extends Plugin {
   }
 
   private async loadPluginData() {
-    const data = (await this.loadData()) as Partial<TypingStatsData> | null;
+    const rawData = (await this.loadData()) as unknown;
+    const migratedData = migratePluginData(rawData);
 
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, data?.settings);
-    this.history = data?.history ?? {};
+    this.settings = normalizedSettings(migratedData.settings);
+
+    this.history = Object.fromEntries(
+      Object.entries(migratedData.history).map(([dayKey, stats]) => [
+        dayKey,
+        toDailyStats(dayKey, stats),
+      ]),
+    );
 
     const today = dayKeyFor(Date.now());
-    this.todayStats = this.history[today] ?? emptyDailyStats(today);
+    this.todayStats = toDailyStats(today, this.history[today]);
     this.history[today] = this.todayStats;
+
+    if (
+      rawData == null ||
+      (rawData as Partial<TypingStatsData>).schemaVersion !==
+        CURRENT_SCHEMA_VERSION
+    ) {
+      await this.saveData({
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        settings: this.settings,
+        history: this.history,
+      });
+    }
   }
 
   private queueSave() {
@@ -216,6 +262,7 @@ export default class TypingStats extends Plugin {
       this.saveTimer = null;
     }
     const data: TypingStatsData = {
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       settings: this.settings,
       history: this.history,
     };

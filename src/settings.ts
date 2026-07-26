@@ -12,6 +12,8 @@ export interface TypingStatsSettings {
   newBurstThreshold: number;
   // Minimum duration for a burst to be counted
   minBurstDuration: number;
+  // File ignore patterns for notes you don't want to track typing in
+  fileIgnorePatterns: string[];
 }
 
 // Defaults
@@ -20,6 +22,7 @@ export const DEFAULT_SETTINGS: TypingStatsSettings = {
   enabled: true,
   newBurstThreshold: 2000,
   minBurstDuration: 500,
+  fileIgnorePatterns: [],
 };
 
 // Constraints
@@ -50,16 +53,67 @@ function validateNumber(value: string, min?: number, max?: number): string {
   return '';
 }
 
+function regexStringListFromTextarea(
+  textarea: string,
+): { valid: true; patterns: string[] } | { valid: false; message: string } {
+  const patterns = textarea
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  for (const pattern of patterns) {
+    try {
+      new RegExp(pattern);
+    } catch {
+      // Don't worry, Linter. Everything will be okay
+      return {
+        valid: false,
+        message: `The pattern '${pattern}' is not valid regex`,
+      };
+    }
+  }
+  return { valid: true, patterns };
+}
+
+function regexListSetting(
+  containerEl: HTMLElement,
+  name: string,
+  desc: string,
+  initialValues: string[],
+  onValid: (value: string[]) => Promise<void> | void,
+) {
+  const setting = new Setting(containerEl).setName(name).setDesc(desc);
+
+  setting.addTextArea((ta) => {
+    ta.setValue(initialValues.join('\n'));
+
+    ta.onChange(async (value) => {
+      const result = regexStringListFromTextarea(value);
+
+      ta.inputEl.classList.toggle('mod-error', !result.valid);
+      ta.inputEl.setAttribute('aria-invalid', String(!result.valid));
+
+      if (!result.valid) {
+        setting.setDesc(result.message);
+        return;
+      }
+
+      setting.setDesc(desc);
+      await onValid(result.patterns);
+    });
+  });
+}
+
 function constrainedNumberSetting(
   containerEl: HTMLElement,
   name: string,
-  helpText: string,
+  desc: string,
   initialValue: number,
   onValid: (value: number) => Promise<void> | void,
   min?: number,
   max?: number,
 ) {
-  const setting = new Setting(containerEl).setName(name).setDesc(helpText);
+  const setting = new Setting(containerEl).setName(name).setDesc(desc);
 
   setting.addText((text) => {
     text.inputEl.type = 'number';
@@ -77,7 +131,7 @@ function constrainedNumberSetting(
         return;
       }
 
-      setting.setDesc(helpText);
+      setting.setDesc(desc);
       await onValid(Number(value));
     });
   });
@@ -108,6 +162,17 @@ export class TypingStatsSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
+
+    regexListSetting(
+      containerEl,
+      'File ignore patterns',
+      'List of regex patterns (one per line) for files the plugin should not record typing stats in',
+      this.plugin.settings.fileIgnorePatterns,
+      async (value) => {
+        this.plugin.settings.fileIgnorePatterns = value;
+        await this.plugin.saveSettings();
+      },
+    );
 
     constrainedNumberSetting(
       containerEl,

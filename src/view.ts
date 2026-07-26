@@ -2,6 +2,8 @@ import { IconName, ItemView, WorkspaceLeaf } from 'obsidian';
 
 import TypingStats, { dayKeyFor } from './main';
 
+import { avgWPM, netChars } from './stats';
+
 export const VIEW_TYPE_TYPING_STATS = 'typing-stats-view';
 
 export class TypingStatsView extends ItemView {
@@ -92,11 +94,11 @@ export class TypingStatsView extends ItemView {
       ul.createEl('li', {
         text: `Active Time (s): ${Math.round(stats.activeSeconds)}`,
       });
-      ul.createEl('li', { text: `Average WPM: ${stats.avgWPM}` });
+      ul.createEl('li', { text: `Average WPM: ${avgWPM(stats)}` });
       ul.createEl('li', { text: `Bursts: ${stats.bursts}` });
       ul.createEl('li', { text: `Corrections: ${stats.corrections}` });
       ul.createEl('li', {
-        text: `Errors per second: ${stats.activeSeconds !== 0 ? (stats.corrections / stats.activeSeconds).toFixed(1) : 0}`,
+        text: `Corrections per second: ${stats.activeSeconds !== 0 ? (stats.corrections / stats.activeSeconds).toFixed(1) : 0}`,
       });
       ul.createEl('li', {
         text: `Total Chars Added: ${stats.addedChars}`,
@@ -105,7 +107,7 @@ export class TypingStatsView extends ItemView {
         text: `Total Chars Deleted: ${stats.deletedChars}`,
       });
       ul.createEl('li', {
-        text: `Net Chars (Added - Deleted): ${stats.addedChars - stats.deletedChars}`,
+        text: `Net Chars (Added - Deleted): ${netChars(stats)}`,
       });
     });
   }

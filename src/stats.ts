@@ -1,30 +1,6 @@
-import { EditEvent, DailyStats } from './types';
+import { EditEvent, DailyStats, PartialDailyStats } from './types';
 
-/**
- * Calculates the WPM of a burst
- * @param burst Burst as a list of edits
- * @param minWindowMs The burst duration to use if the burst lasts shorter than this (accounts for very shorts bursts and makes WPM more sensible early in a burst)
- * @returns The WPM calculated by dividing net characters by 5 and again by the duration in minutes
- */
-export function burstWPM(burst: EditEvent[], minWindowMs = 3000): number {
-  if (burst.length === 0) return 0;
-
-  const first = burst[0]!;
-  const last = burst[burst.length - 1]!;
-
-  const elapsed = last.timestamp - first.timestamp;
-
-  const durationMinutes = Math.max(elapsed, minWindowMs) / 60000;
-  const netChars = burst.reduce(
-    (sum, e) => sum + e.insertedText.length - e.deletedText.length,
-    0,
-  );
-  return Math.max(0, netChars) / 5 / durationMinutes;
-}
-
-export function isBackwardJump(prev: EditEvent, curr: EditEvent): boolean {
-  return curr.deletedFrom < prev.insertedTo;
-}
+function daysWithStat() {}
 
 /**
  * True if `curr` deletes text that overlaps with what `prev` just inserted,
@@ -55,9 +31,61 @@ export function emptyDailyStats(date: string): DailyStats {
     addedChars: 0,
     deletedChars: 0,
     bursts: 0,
-    avgWPM: 0,
     corrections: 0,
   };
+}
+
+export function toDailyStats(
+  date: string,
+  partial?: PartialDailyStats,
+): DailyStats {
+  return { ...emptyDailyStats(date), ...partial, date };
+}
+
+export function formatStat(
+  value: number | undefined,
+  formatter: (n: number) => string = String,
+): string {
+  return value === undefined ? '-' : formatter(value);
+}
+
+export function avgWPM(stats: PartialDailyStats): number | null {
+  const { activeSeconds, addedChars, deletedChars } = stats;
+  if (
+    activeSeconds === undefined ||
+    addedChars === undefined ||
+    deletedChars === undefined
+  ) {
+    return null;
+  }
+  if (activeSeconds === 0) return 0;
+  const netChars = Math.max(0, addedChars - deletedChars);
+  return Math.floor(netChars / 5 / (activeSeconds / 60));
+}
+
+export function netChars(stats: PartialDailyStats): number | null {
+  if (stats.addedChars === undefined || stats.deletedChars === undefined) {
+    return null;
+  }
+  return stats.addedChars - stats.deletedChars;
+}
+
+export function correctionsPerSecond(stats: PartialDailyStats): number | null {
+  if (stats.corrections === undefined || stats.activeSeconds === undefined) {
+    return null;
+  }
+  if (stats.activeSeconds === 0) return 0;
+  return stats.corrections / stats.activeSeconds;
+}
+
+export function daysWithStats<K extends keyof Omit<DailyStats, 'date'>>(
+  history: Record<string, PartialDailyStats>,
+  ...keys: K[]
+): Array<PartialDailyStats & Pick<DailyStats, K>> {
+  return Object.values(history).filter(
+    (day): day is PartialDailyStats & Pick<DailyStats, K> =>
+      keys.every((key) => day[key] !== undefined),
+  );
 }
 
 export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
@@ -67,8 +95,6 @@ export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
   const duration = Math.trunc(
     (burst[burst.length - 1]!.timestamp - burst[0]!.timestamp) / 1000,
   );
-
-  const wpm = burstWPM(burst);
 
   let addedChars = 0;
   let deletedChars = 0;
@@ -80,14 +106,6 @@ export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
     deletedChars += e.deletedText.length;
     if (i > 0 && isCorrection(burst[i - 1]!, e)) corrections++;
   }
-
-  // Weighted-average WPM (running average, floored)
-  stats.avgWPM = Math.floor(
-    stats.activeSeconds + duration === 0
-      ? 0
-      : (stats.avgWPM * stats.activeSeconds + wpm * duration) /
-          (stats.activeSeconds + duration),
-  );
 
   stats.activeSeconds += duration;
   stats.addedChars += addedChars;
