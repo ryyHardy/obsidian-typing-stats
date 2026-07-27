@@ -26,7 +26,7 @@ An Obsidian plugin must exist inside of an Obsidian vault, in the `.obsidian/plu
 4. Clone this repository inside of that directory.
 5. `cd` into the repository.
 6. Run `npm install` to install dependencies.
-7. To build the plugin, run `npm run dev`.
+7. To build the plugin, run `npm run dev`. To run tests, run `npm test`.
 8. In your Obsidian vault, you should now see the Typing Stats plugin in the community plugin list. Click the refresh icon on it to get the latest build.
 9. Enable the plugin and test it out!
 
@@ -43,6 +43,7 @@ This is a small plugin, but code quality is still the goal. Here are some guidel
 - Prefer functions over OOP when possible. If you must use OOP, avoid inheritance and excessive abstraction. We do not want to turn this project into [FizzBuzz Enterprise Edition](https://github.com/enterprisequalitycoding/fizzbuzzenterpriseedition).
 - Comment your code enough so that someone with no knowledge of it could understand it quickly. Try to think from that person's perspective.
 - Keep PRs small and atomic. They take time to digest.
+- ❗ **Make sure all the tests pass when you are done.** (command is `npm test`)
 
 ## Final Notes
 
