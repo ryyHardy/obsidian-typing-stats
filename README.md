@@ -8,7 +8,7 @@ Work on your notes and your typing skills at the same time with this Obsidian pl
 
 - Typing Stats is available on the [Obsidian Community Plugins repository](https://community.obsidian.md/search?q=Typing%20Stats).
 
-See the [CHANGELOG](./CHANGELOD.md) for more details on each version.
+See [CHANGELOG.md](https://github.com/ryyHardy/obsidian-typing-stats/blob/main/CHANGELOG.md) in the repository for more details on each version.
 
 ## Included Stats
 
@@ -84,4 +84,4 @@ In the history, each day has the stats compiled during that day. You can use thi
 
 ## Want to contribute?
 
-Check out [CONTRIBUTING.md](./CONTRIBUTING.md).
+Check out [CONTRIBUTING.md](https://github.com/ryyHardy/obsidian-typing-stats/blob/main/CONTRIBUTING.md) in the repository!

@@ -7,10 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- File ignore list setting for privacy
 - Status bar items for certain stats
 - Consistency stat
 - Improved stat calculation while switching files
+
+## [1.2.0] - 2026-07-26
+
+### Added
+
+- "File ignore patterns" setting allowing users to stop the collection of typing statistics while in certain files.
+- A migration system to ensure existing users' data is properly handled when updating to a newer plugin version.
+- Added unit testing setup with vitest. Test cases added for the new file ignore setting and migration system to ensure they continue working.
+
+### Fixed
+
+- "Corrections per second" was misnamed as "Errors per second" in the stats view panel.
 
 ## [1.1.0] - 2026-07-20
 
