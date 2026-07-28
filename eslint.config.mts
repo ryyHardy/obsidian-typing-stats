@@ -3,7 +3,7 @@ import obsidianmd from 'eslint-plugin-obsidianmd';
 import globals from 'globals';
 import { globalIgnores, defineConfig } from 'eslint/config';
 
-export default defineConfig(
+export default defineConfig([
   globalIgnores([
     'node_modules',
     'dist',
@@ -11,11 +11,12 @@ export default defineConfig(
     'version-bump.mjs',
     'versions.json',
     'main.js',
-    'package.json',
     'package-lock.json',
     'tsconfig.json',
   ]),
+  ...obsidianmd.configs.recommended,
   {
+    files: ['src/**/*.ts', 'tests/**/*.ts', 'eslint.config.mts'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -28,7 +29,6 @@ export default defineConfig(
         extraFileExtensions: ['.json'],
       },
     },
-    ...obsidianmd.configs.recommended,
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -43,4 +43,4 @@ export default defineConfig(
       ],
     },
   },
-);
+]);
