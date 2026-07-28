@@ -16,7 +16,7 @@
  *
  */
 
-import type { TypingStatsSettings } from './settings';
+import type { TypingStatsSettings } from '../settings';
 import { TypingStatsData } from './types';
 
 const DEFAULT_SETTINGS: TypingStatsSettings = {
@@ -25,6 +25,11 @@ const DEFAULT_SETTINGS: TypingStatsSettings = {
   minBurstDuration: 500,
   fileIgnorePatterns: [],
 };
+
+function hi(hi: string): boolean {
+  const hello = hi;
+  return true;
+}
 
 type MigrationStep = {
   fromVersion: number;

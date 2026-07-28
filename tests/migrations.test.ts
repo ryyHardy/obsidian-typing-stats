@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { CURRENT_SCHEMA_VERSION, migratePluginData } from '../src/migrations';
+import {
+  CURRENT_SCHEMA_VERSION,
+  migratePluginData,
+} from '../src/lib/migrations';
 
 describe('migratePluginData', () => {
   it('migrates data from version 1 to the latest schema', () => {

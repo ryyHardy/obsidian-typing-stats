@@ -4,6 +4,7 @@
     "inlineSources": true,
     "module": "esnext",
     "target": "ES2021",
+    "lib": ["ES2021", "DOM"],
     "strict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -11,9 +12,11 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
-    "lib": ["ES2021", "DOM"]
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "src/**/*.ts",
