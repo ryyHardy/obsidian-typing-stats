@@ -16,7 +16,7 @@
  *
  */
 
-import type { TypingStatsSettings } from './settings';
+import type { TypingStatsSettings } from '../settings';
 import { TypingStatsData } from './types';
 
 const DEFAULT_SETTINGS: TypingStatsSettings = {

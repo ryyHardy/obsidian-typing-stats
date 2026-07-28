@@ -1,4 +1,4 @@
-import type { TypingStatsSettings } from './settings';
+import type { TypingStatsSettings } from '../settings';
 
 export type EditEvent = {
   timestamp: number; // Date.now()

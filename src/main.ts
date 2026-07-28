@@ -5,18 +5,18 @@ import {
   TypingStatsSettingTab,
 } from './settings';
 
-import { shouldIgnoreFile } from './independent';
+import { shouldIgnoreFile } from './lib/stats';
 
 import { EditorView } from '@codemirror/view';
-import { DailyStats, EditEvent, TypingStatsData } from './types';
+import { DailyStats, EditEvent, TypingStatsData } from './lib/types';
 import {
   addBurstToDailyStats,
   shouldDiscardBurst,
   toDailyStats,
-} from './stats';
+} from './lib/stats';
 
 import { TypingStatsView, VIEW_TYPE_TYPING_STATS } from './view';
-import { CURRENT_SCHEMA_VERSION, migratePluginData } from './migrations';
+import { CURRENT_SCHEMA_VERSION, migratePluginData } from './lib/migrations';
 
 const SAVE_DEBOUNCE_MS = 2000;
 

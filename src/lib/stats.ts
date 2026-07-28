@@ -1,7 +1,5 @@
 import { EditEvent, DailyStats, PartialDailyStats } from './types';
 
-function daysWithStat() {}
-
 /**
  * True if `curr` deletes text that overlaps with what `prev` just inserted,
  * within a short time window (i.e. immediate correction after a mistake)
@@ -132,4 +130,17 @@ export function shouldDiscardBurst(
 
   const TRIVIAL_EDIT_CHARS = 1; // don't count single stray characters typed
   return charsChanged <= TRIVIAL_EDIT_CHARS;
+}
+
+export function shouldIgnoreFile(
+  filePath: string,
+  patterns: string[],
+): boolean {
+  return patterns.some((pattern) => {
+    try {
+      return new RegExp(pattern).test(filePath);
+    } catch {
+      return false;
+    }
+  });
 }

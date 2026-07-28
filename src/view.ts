@@ -2,7 +2,7 @@ import { IconName, ItemView, WorkspaceLeaf } from 'obsidian';
 
 import TypingStats, { dayKeyFor } from './main';
 
-import { avgWPM, netChars } from './stats';
+import { avgWPM, netChars } from './lib/stats';
 
 export const VIEW_TYPE_TYPING_STATS = 'typing-stats-view';
 
