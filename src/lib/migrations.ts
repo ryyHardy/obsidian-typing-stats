@@ -26,6 +26,11 @@ const DEFAULT_SETTINGS: TypingStatsSettings = {
   fileIgnorePatterns: [],
 };
 
+function hi(hi: string): boolean {
+  const hello = hi;
+  return true;
+}
+
 type MigrationStep = {
   fromVersion: number;
   toVersion: number;
