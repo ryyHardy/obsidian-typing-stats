@@ -16,7 +16,10 @@ export default defineConfig([
   ]),
   ...obsidianmd.configs.recommended,
   {
-    files: ['src/**/*.ts', 'tests/**/*.ts', 'eslint.config.mts'],
+    files: ['src/**/*.ts', 'tests/**/*.ts'],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
     languageOptions: {
       globals: {
         ...globals.browser,
