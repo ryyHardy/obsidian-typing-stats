@@ -86,6 +86,16 @@ export function daysWithStats<K extends keyof Omit<DailyStats, 'date'>>(
   );
 }
 
+export function removeEmptyDays(
+  history: Record<string, DailyStats>,
+): Record<string, DailyStats> {
+  const entries = Object.entries(history);
+  const filtered = entries.filter(
+    ([_day, dayStats]) => dayStats.activeSeconds > 0,
+  );
+  return Object.fromEntries(filtered);
+}
+
 export function addBurstToDailyStats(stats: DailyStats, burst: EditEvent[]) {
   if (burst.length === 0) return;
 

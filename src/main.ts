@@ -5,7 +5,7 @@ import {
   TypingStatsSettingTab,
 } from './settings';
 
-import { shouldIgnoreFile } from './lib/stats';
+import { removeEmptyDays, shouldIgnoreFile } from './lib/stats';
 
 import { EditorView } from '@codemirror/view';
 import { DailyStats, EditEvent, TypingStatsData } from './lib/types';
@@ -231,6 +231,8 @@ export default class TypingStats extends Plugin {
       ]),
     );
 
+    this.history = removeEmptyDays(this.history);
+
     const today = dayKeyFor(Date.now());
     this.todayStats = toDailyStats(today, this.history[today]);
     this.history[today] = this.todayStats;
@@ -264,7 +266,7 @@ export default class TypingStats extends Plugin {
     const data: TypingStatsData = {
       schemaVersion: CURRENT_SCHEMA_VERSION,
       settings: this.settings,
-      history: this.history,
+      history: removeEmptyDays(this.history),
     };
     await this.saveData(data);
   }
